@@ -1,0 +1,157 @@
+version: '3'
+
+networks:
+  laravel:
+
+services:
+  nginx:
+    build:
+      context: ./.docker/nginx
+      dockerfile: Dockerfile 
+    ports:
+      - "80:80"
+      - "443:443" 
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./.docker/nginx/certs:/etc/nginx/certs
+    depends_on:
+      - php
+      - redis
+      - mysql
+      - pma
+      - mailhog
+    networks:
+      - laravel
+
+  # mysql:
+  #   image: mysql:8.0
+  #   restart: unless-stopped
+  #   tty: true
+  #   ports:
+  #     - 3306:3306
+  #   environment:
+  #     MYSQL_DATABASE: homestead
+  #     MYSQL_USER: homestead
+  #     MYSQL_PASSWORD: secret
+  #     MYSQL_ROOT_PASSWORD: secret
+  #     SERVICE_TAGS: dev
+  #     SERVICE_NAME: mysql
+  #   networks:
+  #     - laravel
+  
+  mysql:
+    image: mariadb:10.4
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 3306:3306
+    env_file:
+      - ./src/.env.example
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./.docker/mysql:/var/lib/mysql
+      - ./.docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf 
+    networks:
+      - laravel
+    
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    depends_on:
+      - mysql
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: password 
+    networks:
+      - laravel
+    
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 8081:8080
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: password  
+  #   networks:
+  #     - laravel
+
+  php:
+    build:
+      context: ./.docker/php/7.4
+      dockerfile: Dockerfile
+    tty: true  
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./.docker/nginx/certs:/usr/local/share/ca-certificates
+      - ./.docker/bash/init:/opt/files/init
+    networks:
+      - laravel
+
+  redis:
+    image: redis:alpine
+    tty: true 
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    networks:
+      - laravel
+
+  npm:
+    image: node:13.7
+    tty: true
+    volumes:
+      - ./src:/var/www/html:delegated
+    ports:
+      - 3000:3000
+      - 3001:3001
+    working_dir: /var/www/html
+    entrypoint: ['npm', '--no-build-links']
+    networks:
+      - laravel
+
+  # composer:
+  #   build:
+  #     context: ./.docker/composer
+  #     dockerfile: Dockerfile
+  #   container_name: composer
+  #   volumes:
+  #     - ./src:/var/www/html:cached
+  #   working_dir: /var/www/html
+  #   depends_on:
+  #     - php
+  #   user: laravel
+  #   entrypoint: ['composer', '--ignore-platform-reqs']
+  #   networks:
+  #     - laravel
+
+  # artisan:
+  #   build:
+  #     context: ./.docker/php/7.4
+  #     dockerfile: Dockerfile
+  #   container_name: artisan
+  #   volumes:
+  #     - ./src:/var/www/html:cached
+  #   depends_on:
+  #     - mysql
+  #   working_dir: /var/www/html
+  #   user: laravel
+  #   entrypoint: ['php', '/var/www/html/artisan']
+  #   networks:
+  #     - laravel
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - 1025:1025
+      - 8025:8025
+    networks:
+      - laravel

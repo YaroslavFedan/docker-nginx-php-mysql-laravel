@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Install Composer dependencies
+composer install -d "/var/www/html"
+
+# Install Yarn dependencies
+# yarn install -d "/var/www/html"
+
+# Install Npm dependencies
+npm install -d "/var/www/html"
+
+# Generate application key
+php "/var/www/html/artisan" key:generate --ansi
+php "/var/www/html/artisan" config:cache --ansi
+php "/var/www/html/artisan" cache:clear --ansi
+
+# Database migrate 
+# php "/var/www/artisan" migrate
