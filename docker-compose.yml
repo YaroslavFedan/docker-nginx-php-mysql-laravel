@@ -45,8 +45,6 @@ services:
     tty: true
     ports:
       - 3306:3306
-    env_file:
-      - ./src/.env.example
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
